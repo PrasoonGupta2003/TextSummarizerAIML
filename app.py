@@ -49,25 +49,35 @@ def summarize_dialogue(dialogue : str) -> str:
 
     # generate the summary => token ids
     model.to(device)
-    targets = model.generate(
-        input_ids=inputs["input_ids"],
-        attention_mask=inputs["attention_mask"],
-        max_length=150,
-        num_beams=4,
-        early_stopping=True
-    )
-    
-    # decoded our output
-    summary = tokenizer.decode(targets[0], skip_special_tokens=True) # EOS, SEP
-    return summary
+    model.eval()
+
+    with torch.no_grad():
+        targets = model.generate(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            max_length=60,
+            num_beams=1,
+            do_sample=False,
+            early_stopping=True
+        )
+        # decoded our output
+        summary = tokenizer.decode(targets[0], skip_special_tokens=True) # EOS, SEP
+        return summary
 
 
 # API endpoints
 @app.post("/summarize/")
 async def summarize(dialogue_input: DialogueInput):
-    summary = summarize_dialogue(dialogue_input.dialogue)
-    return {"summary": summary}
-
+    try:
+        print("Request received")
+        summary = summarize_dialogue(dialogue_input.dialogue)
+        print("Summary generated")
+        return {"summary": summary}
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise
+    
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse(
