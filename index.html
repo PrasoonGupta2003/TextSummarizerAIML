@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Text Summarizer</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#fff7ed,#ffe7c7,#fff2e2);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:30px;
+    color:#333;
+}
+
+.container{
+    width:100%;
+    max-width:900px;
+    background:#fff;
+    border-radius:20px;
+    padding:35px;
+    box-shadow:0 15px 35px rgba(0,0,0,.12);
+}
+
+.header{
+    text-align:center;
+    margin-bottom:25px;
+}
+
+.header h1{
+    color:#f97316;
+    font-size:2.4rem;
+    margin-bottom:8px;
+}
+
+.header p{
+    color:#666;
+    font-size:15px;
+}
+
+.badge{
+    display:inline-block;
+    background:#fff4e6;
+    color:#f97316;
+    padding:6px 14px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:15px;
+}
+
+textarea{
+    width:100%;
+    min-height:220px;
+    resize:vertical;
+    padding:18px;
+    border:2px solid #ececec;
+    border-radius:14px;
+    font-size:16px;
+    outline:none;
+    transition:.3s;
+}
+
+textarea:focus{
+    border-color:#fb923c;
+    box-shadow:0 0 0 4px rgba(251,146,60,.15);
+}
+
+.info{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:10px;
+    color:#777;
+    font-size:14px;
+}
+
+.actions{
+    display:flex;
+    gap:15px;
+    margin-top:22px;
+}
+
+button{
+    border:none;
+    cursor:pointer;
+    padding:13px 22px;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:600;
+    transition:.3s;
+}
+
+#summarize-btn{
+    background:#f97316;
+    color:white;
+    flex:1;
+}
+
+#summarize-btn:hover{
+    background:#ea580c;
+}
+
+#clear-btn{
+    background:#f3f4f6;
+}
+
+#clear-btn:hover{
+    background:#e5e7eb;
+}
+
+.output{
+    margin-top:30px;
+    background:#fff8f1;
+    border:1px solid #fed7aa;
+    border-radius:15px;
+    padding:22px;
+}
+
+.output h2{
+    color:#f97316;
+    margin-bottom:15px;
+}
+
+#summary-text{
+    line-height:1.8;
+    white-space:pre-wrap;
+}
+
+.copy-btn{
+    margin-top:18px;
+    background:#16a34a;
+    color:white;
+}
+
+.copy-btn:hover{
+    background:#15803d;
+}
+
+.footer{
+    margin-top:30px;
+    text-align:center;
+    color:#888;
+    font-size:13px;
+}
+
+.loading{
+    display:none;
+    text-align:center;
+    margin-top:15px;
+    color:#f97316;
+    font-weight:bold;
+}
+
+.spinner{
+    width:22px;
+    height:22px;
+    border:3px solid #ddd;
+    border-top:3px solid #f97316;
+    border-radius:50%;
+    display:inline-block;
+    animation:spin .8s linear infinite;
+    vertical-align:middle;
+    margin-right:8px;
+}
+
+@keyframes spin{
+    to{
+        transform:rotate(360deg);
+    }
+}
+
+@media(max-width:700px){
+
+.container{
+padding:25px;
+}
+
+.actions{
+flex-direction:column;
+}
+
+.header h1{
+font-size:2rem;
+}
+
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+
+<div class="badge">
+ Powered by Hugging Face Transformers
+</div>
+
+<h1>AI Text Summarizer</h1>
+
+<p>
+Generate concise summaries from long articles, reports, notes, or documents in seconds.
+</p>
+
+</div>
+
+<form id="summarization-form">
+
+<textarea
+id="dialogue-input"
+placeholder="Paste your article, paragraph, or document here..."
+required></textarea>
+
+<div class="info">
+<span id="char-count">0 Characters</span>
+<span>Abstractive Summarization</span>
+</div>
+
+<div class="actions">
+
+<button id="summarize-btn" type="submit">
+✨ Summarize
+</button>
+
+<button type="button" id="clear-btn">
+🗑 Clear
+</button>
+
+</div>
+
+</form>
+
+<div class="loading" id="loading">
+<span class="spinner"></span>
+Generating summary...
+</div>
+
+<div class="output">
+
+<h2>📄 Summary</h2>
+
+<p id="summary-text">
+Your summarized content will appear here.
+</p>
+
+<button class="copy-btn" id="copy-btn">
+📋 Copy Summary
+</button>
+
+</div>
+
+<div class="footer">
+Built with ❤️ using Hugging Face Transformers & Flask
+</div>
+
+</div>
+
+<script>
+
+const textarea=document.getElementById("dialogue-input");
+const counter=document.getElementById("char-count");
+
+textarea.addEventListener("input",()=>{
+counter.innerText=`${textarea.value.length} Characters`;
+});
+
+document.getElementById("clear-btn").addEventListener("click", () => {
+
+    textarea.value = "";
+    textarea.focus();
+
+    counter.innerText = "0 Characters";
+
+    document.getElementById("summary-text").innerText =
+        "Your summarized content will appear here.";
+
+});
+document.getElementById("copy-btn").addEventListener("click", () => {
+
+    const text = document.getElementById("summary-text").innerText.trim();
+
+    if (
+        text === "" ||
+        text === "Your summarized content will appear here."
+    ) {
+        alert("No summary available to copy.");
+        return;
+    }
+
+    navigator.clipboard.writeText(text);
+
+    const btn = document.getElementById("copy-btn");
+    btn.innerText = "✅ Copied";
+
+    setTimeout(() => {
+        btn.innerText = "📋 Copy Summary";
+    }, 1500);
+
+});
+
+document.getElementById("summarization-form").addEventListener("submit",async(e)=>{
+
+e.preventDefault();
+
+const dialogue=textarea.value.trim();
+
+if(dialogue==="") return;
+
+const loading=document.getElementById("loading");
+const summary=document.getElementById("summary-text");
+const button=document.getElementById("summarize-btn");
+
+loading.style.display="block";
+button.disabled=true;
+summary.innerText="";
+
+try{
+
+const response=await fetch("/summarize/",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+dialogue
+})
+
+});
+
+if(!response.ok){
+throw new Error("Failed to summarize.");
+}
+
+const data=await response.json();
+
+summary.innerText=data.summary;
+
+}
+catch(err){
+
+summary.innerText=err.message;
+
+}
+finally{
+
+loading.style.display="none";
+button.disabled=false;
+
+}
+
+});
+
+</script>
+
+</body>
+</html>
